@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: inventario-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt && python manage.py migrate
+    startCommand: gunicorn stockapp.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "false"
