@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-me")
@@ -9,6 +10,17 @@ ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "loc
 RENDER_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_HOSTNAME and RENDER_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_HOSTNAME)
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+if os.getenv("RENDER") and not DATABASE_URL:
+    raise ImproperlyConfigured("Set DATABASE_URL to the Render Postgres internal connection string.")
+DATABASES = {
+    "default": dj_database_url.config(
+        default=DATABASE_URL or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
+}
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -43,13 +55,6 @@ TEMPLATES = [{
     ]},
 }]
 WSGI_APPLICATION = "stockapp.wsgi.application"
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -68,13 +73,11 @@ CORS_ALLOWED_ORIGINS = [
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://[a-zA-Z0-9-]+\.vercel\.app$",
-    r"^http://localhost:\\d+$",
-    r"^http://127\\.0\\.0\\.1:\\d+$",
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
 ]
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
-
-# Render exposes PORT at runtime; the production WSGI process is started by Gunicorn.
