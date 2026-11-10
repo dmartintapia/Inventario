@@ -5,14 +5,14 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-only-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "false").lower() == "true"
+DEBUG = os.getenv("DJANGO_DEBUG", "true").lower() == "true"
 ALLOWED_HOSTS = [host.strip() for host in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
 RENDER_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
 if RENDER_HOSTNAME and RENDER_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_HOSTNAME)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-if os.getenv("RENDER") and not DATABASE_URL:
+if not DEBUG and not DATABASE_URL:
     raise ImproperlyConfigured("Set DATABASE_URL to the Render Postgres internal connection string.")
 DATABASES = {
     "default": dj_database_url.config(
